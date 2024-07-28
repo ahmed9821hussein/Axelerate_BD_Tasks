@@ -8,7 +8,21 @@ namespace Task1.ExtensionMethods
     public static class CurveExtensions
     {
         private const double _sixteenth = (1.0 / 12.0) / 16.0;
+        public static bool AreCurvesPlanar(List<Curve> curves)
+        {
+            // Check if all points lie in the same XY plane (Z-coordinate should be consistent)
+            double zValue = curves[0].GetEndPoint(0).Z;
 
+            foreach (Curve curve in curves)
+            {
+                if (curve.GetEndPoint(0).Z != zValue || curve.GetEndPoint(1).Z != zValue)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
         public static Curve CreateReversedCurve(Application creapp, Curve orig)
         {
             if (orig is Line)
