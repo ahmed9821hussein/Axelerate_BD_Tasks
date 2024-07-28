@@ -3,12 +3,16 @@
 	<AddIn Type="Command">
 		<Name>Task1</Name>
 		<Assembly>D:\Axelerate\Sol\Task1\bin\Debug\Task1.dll</Assembly>
-		<AddInId>3D2281A1-D7E3-46AB-A1ED-E1E7D3F9163A</AddInId>
+		<AddInId>
+			364D05AC-7E80-496A-9D04-F04AAF09D05F
+		</AddInId>
 		<LanguageType>CSHARP</LanguageType>
 		<AppName>Task1</AppName>
 		<Description>A Revit add-in to create floors from a list of line curves</Description>
 		<VendorId>AhmedHussein</VendorId>
 		<VendorDescription>AhmedHussein, BIM Developer Engineer </VendorDescription>
 		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<FullClassName>Task1.CreateFloorCommand</FullClassName>
+
 	</AddIn>
 </RevitAddIns>
