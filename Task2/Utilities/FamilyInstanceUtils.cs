@@ -45,26 +45,6 @@ namespace Task2.Utilities
                 }
             }
         }
-        public static List<Curve> FamilyInstanceBoundaryLines(double familyInsWidth, double familyInsHeight, XYZ familyInsLocPoint, bool IsVerticalWall = false)
-        {
-            if (IsVerticalWall)
-            {
-                var height = familyInsHeight;
-                var width = familyInsWidth;
-                familyInsHeight = width;
-                familyInsWidth = height;
-            }
-            List<Curve> lines = new List<Curve>();
-            var instanceLine1 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y, 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y, 0)) as Curve;
-            var instanceLine2 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y + (familyInsHeight / 2), 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y + (familyInsHeight / 2), 0)) as Curve;
-            var instanceLine3 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y - (familyInsHeight / 2), 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y - (familyInsHeight / 2), 0)) as Curve;
-
-            lines.Add(instanceLine1);
-            lines.Add(instanceLine2);
-            lines.Add(instanceLine3);
-
-            return lines;
-        }
         public static void VerticalHandOrientationCriterea(FamilyInstance familyCreated, Curve curveWall, XYZ familyLocationPoint, XYZ roomMidPoint, Document doc)
         {
             XYZ directionToFamily = familyLocationPoint - roomMidPoint;
@@ -196,6 +176,51 @@ namespace Task2.Utilities
             {
                 HorizontalHandOrientationCriteria(familyCreated, selectedWallCurveInRoom, familyLocationPoint, roomMidPoint, doc);
             }
+        }
+        public static void MoveFamilyToAvoidOverlap(FamilyInstance newFamilyInstance, List<FamilyInstance> existingFamilies, Curve wallCurve, Document doc)
+        {
+            var newFamilyLocation = (newFamilyInstance.Location as LocationPoint).Point;
+            var newFamilyCurves = FamilyInstanceBoundaryLines(5, 5, newFamilyLocation);
+
+            foreach (var existingFamily in existingFamilies)
+            {
+                var existingFamilyLocation = (existingFamily.Location as LocationPoint).Point;
+                var existingFamilyCurves = FamilyInstanceBoundaryLines(5, 5, existingFamilyLocation);
+
+                while (GeoUtils.AreLinesIntersecting(newFamilyCurves, existingFamilyCurves))
+                {
+                    // Move along the wall direction to avoid overlap
+                    XYZ direction = wallCurve.ComputeDerivatives(0, true).BasisX.Normalize();
+                    XYZ translationVector = direction * 1.0; // Adjust distance as needed
+
+                    // Move the new family instance
+                    ElementTransformUtils.MoveElement(doc, newFamilyInstance.Id, translationVector);
+
+                    // Update the new family location and curves after moving
+                    newFamilyLocation = (newFamilyInstance.Location as LocationPoint).Point;
+                    newFamilyCurves = FamilyInstanceBoundaryLines(5, 5, newFamilyLocation);
+                }
+            }
+        }
+        public static List<Curve> FamilyInstanceBoundaryLines(double familyInsWidth, double familyInsHeight, XYZ familyInsLocPoint, bool IsVerticalWall = false)
+        {
+            if (IsVerticalWall)
+            {
+                var height = familyInsHeight;
+                var width = familyInsWidth;
+                familyInsHeight = width;
+                familyInsWidth = height;
+            }
+            List<Curve> lines = new List<Curve>();
+            var instanceLine1 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y, 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y, 0)) as Curve;
+            var instanceLine2 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y + (familyInsHeight / 2), 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y + (familyInsHeight / 2), 0)) as Curve;
+            var instanceLine3 = Line.CreateBound(new XYZ(familyInsLocPoint.X - (familyInsWidth / 2), familyInsLocPoint.Y - (familyInsHeight / 2), 0), new XYZ(familyInsLocPoint.X + (familyInsWidth / 2), familyInsLocPoint.Y - (familyInsHeight / 2), 0)) as Curve;
+
+            lines.Add(instanceLine1);
+            lines.Add(instanceLine2);
+            lines.Add(instanceLine3);
+
+            return lines;
         }
     }
 }

@@ -10,17 +10,17 @@ namespace Task2.Utilities
     public static class RoomUtils
     {
 
-        public static Room GetRoomsNextToSelectedWall(Wall selectedWall, out IList<Autodesk.Revit.DB.BoundarySegment> boundarySegment)
+        public static Room GetRoomsNextToSelectedWall(Wall selectedWall, out IList<BoundarySegment> boundarySegment)
         {
             boundarySegment = null;
             Room roomsFound = null;
 
             var bathroomRooms = new FilteredElementCollector(PlaceWCCommand.CommandDoc)
-                          .OfCategory(BuiltInCategory.OST_Rooms)
-                          .WhereElementIsNotElementType()
-                          .Where(room => room.Name.Contains("Bathroom"))
-                          .Cast<Room>()
-                          .ToList();
+                                .OfCategory(BuiltInCategory.OST_Rooms)
+                                .WhereElementIsNotElementType()
+                                .Where(room => room.Name.Contains("Bathroom"))
+                                .Cast<Room>()
+                                .ToList();
 
             if (!bathroomRooms.Any())
             {
@@ -35,9 +35,9 @@ namespace Task2.Utilities
 
             foreach (Room room in bathroomRooms)
             {
-                foreach (IList<Autodesk.Revit.DB.BoundarySegment> boundSegList in room.GetBoundarySegments(options))
+                foreach (IList<BoundarySegment> boundSegList in room.GetBoundarySegments(options))
                 {
-                    foreach (Autodesk.Revit.DB.BoundarySegment boundSeg in boundSegList)
+                    foreach (BoundarySegment boundSeg in boundSegList)
                     {
                         if (IsWallSegmentOfSelectedWall(boundSeg, selectedWall))
                         {
@@ -55,6 +55,26 @@ namespace Task2.Utilities
             Wall wall = e as Wall;
             return wall != null && wall.Id == selectedWall.Id;
         }
+
+        public static bool CheckForExistingWCFamily(Document doc, Room room, string familyName)
+        {
+            var familyInstances = new FilteredElementCollector(doc)
+                                  .OfClass(typeof(FamilyInstance))
+                                  .WhereElementIsNotElementType()
+                                  .Cast<FamilyInstance>()
+                                  .Where(fi => fi.Symbol.Family.Name == familyName)
+                                  .ToList();
+
+            foreach (var instance in familyInstances)
+            {
+                if (instance.Room?.Id == room.Id)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static List<XYZ> GetDoorsLocationInRoom(Room room, IList<BoundarySegment> boundarySegmentList)
         {
             if (boundarySegmentList == null)
@@ -168,6 +188,74 @@ namespace Task2.Utilities
 
             return doorsCurves;
         }
+        public static List<FamilyInstance> GetWCInstancesInRoom(Room room, Document doc)
+        {
+            var wcInstances = new List<FamilyInstance>();
+
+            // Get the bounding walls of the room
+            var boundingWalls = GetWallsBoundingRoom(room, doc);
+
+            if (!boundingWalls.Any())
+            {
+                TaskDialog.Show("Info", "No bounding walls found for the room.");
+                return wcInstances;
+            }
+
+            // Iterate through the bounding walls to find hosted WC family instances
+            foreach (var wall in boundingWalls)
+            {
+                var hostedElements = wall.FindInserts(true, true, true, true);
+                foreach (var elementId in hostedElements)
+                {
+                    var familyInstance = doc.GetElement(elementId) as FamilyInstance;
+                    if (familyInstance != null && familyInstance.Symbol.Family.Name == "ADA")
+                    {
+                        wcInstances.Add(familyInstance);
+                    }
+                }
+            }
+
+
+            return wcInstances;
+        }
+
+        public static List<Wall> GetWallsBoundingRoom(Room room, Document doc)
+        {
+            var boundaryOptions = new SpatialElementBoundaryOptions();
+            var boundarySegments = room.GetBoundarySegments(boundaryOptions);
+            var walls = new List<Wall>();
+
+            foreach (var segmentList in boundarySegments)
+            {
+                foreach (var segment in segmentList)
+                {
+                    var element = doc.GetElement(segment.ElementId);
+                    if (element is Wall wall)
+                    {
+                        walls.Add(wall);
+                    }
+                }
+            }
+
+            return walls;
+        }
+
+
+        private static bool IsPointOnCurve(Curve curve, XYZ point)
+        {
+            XYZ projectedPoint = curve.Project(point).XYZPoint;
+            double distance = projectedPoint.DistanceTo(point);
+            double tolerance = 0.001; // Tolerance for considering the point on the curve
+
+            return distance < tolerance && curve.IsInside(projectedPoint);
+        }
+
+        private static bool IsInside(this Curve curve, XYZ point)
+        {
+            return curve.GetEndParameter(0) <= curve.Project(point).Parameter &&
+                   curve.Project(point).Parameter <= curve.GetEndParameter(1);
+        }
+
 
     }
 }

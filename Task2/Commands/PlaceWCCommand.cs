@@ -53,8 +53,18 @@ namespace Task2.Commands
 
                 if (roomFound == null)
                 {
-                    TaskDialog.Show("Error", "No room found next to the selected wall.");
+                    TaskDialog.Show("Error", "No Bathroom found next to the selected wall.");
                     return Result.Failed;
+                }
+
+                var existingWCInstances = RoomUtils.GetWCInstancesInRoom(roomFound, CommandDoc);
+                if (existingWCInstances.Count > 0)
+                {
+                    var result = TaskDialog.Show("Warning", "There is already a WC family in this bathroom. Do you want to continue?", TaskDialogCommonButtons.Yes | TaskDialogCommonButtons.No);
+                    if (result == TaskDialogResult.No)
+                    {
+                        return Result.Cancelled;
+                    }
                 }
 
                 var selectedWallCurveInRoom = GeoUtils.GetWallCurveInsideRoom(boundarySegmentList, wallElement);
@@ -81,6 +91,8 @@ namespace Task2.Commands
                     var familyCreated = CommandDoc.Create.NewFamilyInstance(familyLocationPoint, wcFamilySymbol, familyOrientation, wallElement, Autodesk.Revit.DB.Structure.StructuralType.NonStructural);
 
                     FamilyInstanceUtils.FamilyOrientationHandler(CommandDoc, familyCreated, familyOrientation, selectedWallCurveInRoom, familyLocationPoint, roomMidPoint);
+
+                    FamilyInstanceUtils.MoveFamilyToAvoidOverlap(familyCreated, existingWCInstances, selectedWallCurveInRoom, CommandDoc);
 
                     tr.Commit();
                 }
