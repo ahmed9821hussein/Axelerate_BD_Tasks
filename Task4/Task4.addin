@@ -2,7 +2,7 @@
 <RevitAddIns>
 	<AddIn Type="Command">
 		<Name>Task4</Name>
-		<Assembly>D:\Axelerate\Sol\Task4\bin\Debug\Task4.dll</Assembly>
+		<Assembly>\Task4.dll</Assembly>
 		<AddInId>3D2281A1-D7E3-46AB-A1ED-E1E7D3F9163A</AddInId>
 		<LanguageType>CSHARP</LanguageType>
 		<AppName>Task4</AppName>
@@ -10,5 +10,7 @@
 		<VendorId>AhmedHussein</VendorId>
 		<VendorDescription>AhmedHussein, BIM Developer Engineer </VendorDescription>
 		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<FullClassName>Task4.Commands.ModifySectionBox</FullClassName>
+
 	</AddIn>
 </RevitAddIns>
