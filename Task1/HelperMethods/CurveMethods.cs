@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Task1.ExtensionMethods
 {
-    public static class CurveExtensions
+    public static class CurveMethods
     {
         private const double _sixteenth = (1.0 / 12.0) / 16.0;
         public static bool AreCurvesPlanar(List<Curve> curves)

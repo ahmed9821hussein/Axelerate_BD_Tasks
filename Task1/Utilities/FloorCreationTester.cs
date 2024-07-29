@@ -14,7 +14,7 @@ namespace Task1.Utilities
             Document doc = uiDoc.Document;
 
             // Check if all points lie in the same XY plane
-            if (!CurveExtensions.AreCurvesPlanar(curves))
+            if (!CurveMethods.AreCurvesPlanar(curves))
             {
                 TaskDialog.Show($"Error in {testName}", "The curves do not lie in the same XY plane.");
                 return;
@@ -22,7 +22,7 @@ namespace Task1.Utilities
 
             try
             {
-                CurveExtensions.SortCurvesContiguous(commandData.Application.Application.Create, curves, false);
+                CurveMethods.SortCurvesContiguous(commandData.Application.Application.Create, curves, false);
             }
             catch (Exception ex)
             {
@@ -49,7 +49,7 @@ namespace Task1.Utilities
             {
                 trans.Start();
 
-                Level level = LevelExtensions.GetLevel(doc);
+                Level level = LevelMethods.GetLevel(doc);
                 if (level == null)
                 {
                     TaskDialog.Show($"Error in {testName}", "No level found.");

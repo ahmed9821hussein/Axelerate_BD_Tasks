@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Task2
+namespace Task2.Utilities
 {
-    public class Class1
+    internal class RoomUtils
     {
     }
 }

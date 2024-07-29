@@ -10,5 +10,7 @@
 		<VendorId>AhmedHussein</VendorId>
 		<VendorDescription>AhmedHussein, BIM Developer Engineer </VendorDescription>
 		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<FullClassName>Task2.Commands.PlaceWCCommand</FullClassName>
+
 	</AddIn>
 </RevitAddIns>

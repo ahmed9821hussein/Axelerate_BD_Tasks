@@ -4,7 +4,7 @@ using System.Linq;
 namespace Task1.ExtensionMethods
 {
 
-    public static class LevelExtensions
+    public static class LevelMethods
     {
         public static Level GetLevel(Document doc)
         {

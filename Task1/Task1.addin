@@ -12,7 +12,7 @@
 		<VendorId>AhmedHussein</VendorId>
 		<VendorDescription>AhmedHussein, BIM Developer Engineer </VendorDescription>
 		<VisibilityMode>AlwaysVisible</VisibilityMode>
-		<FullClassName>Task1.CreateFloorCommand</FullClassName>
+		<FullClassName>Task1.Commands.CreateFloorCommand</FullClassName>
 
 	</AddIn>
 </RevitAddIns>
