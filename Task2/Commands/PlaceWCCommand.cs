@@ -1,4 +1,5 @@
-﻿using Autodesk.Revit.Attributes;
+﻿using System.Linq;
+using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using System;
@@ -31,9 +32,8 @@ namespace Task2.Commands
                 var wcFamilySymbol = new FilteredElementCollector(doc)
                                      .OfCategory(BuiltInCategory.OST_GenericModel)
                                      .WhereElementIsElementType()
-                                     .Where(a => a.Name == "ADA") // Update with the actual family name
                                      .Cast<FamilySymbol>()
-                                     .FirstOrDefault();
+                                     .FirstOrDefault(a => a.Name == "ADA"); // Update with the actual family name
 
                 if (wcFamilySymbol == null)
                 {
