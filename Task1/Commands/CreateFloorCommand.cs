@@ -6,7 +6,7 @@ using Task1.Utilities;
 using static Task1.Utilities.FloorCreationTester;
 using static Task1.Utilities.CurveDefinitions;
 
-namespace Task1
+namespace Task1.Commands
 {
     [Transaction(TransactionMode.Manual)]
     public class CreateFloorCommand : IExternalCommand

@@ -3,21 +3,23 @@ using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.UI;
 using System.Collections.Generic;
 using System.Linq;
+using Task2.Commands;
 
 namespace Task2.Utilities
 {
     public static class RoomUtils
     {
-        public static Room GetRoomNextToSelectedWall(Wall selectedWall, out IList<BoundarySegment> boundarySegment)
+
+        public static Room GetRoomsNextToSelectedWall(Wall selectedWall, out IList<Autodesk.Revit.DB.BoundarySegment> boundarySegment)
         {
             boundarySegment = null;
-            Room roomFound = null;
+            Room roomsFound = null;
 
-            var bathroomRooms = new FilteredElementCollector(selectedWall.Document)
+            var bathroomRooms = new FilteredElementCollector(PlaceWCCommand.CommandDoc)
                           .OfCategory(BuiltInCategory.OST_Rooms)
                           .WhereElementIsNotElementType()
-                          .Cast<Room>()
                           .Where(room => room.Name.Contains("Bathroom"))
+                          .Cast<Room>()
                           .ToList();
 
             if (!bathroomRooms.Any())
@@ -33,58 +35,139 @@ namespace Task2.Utilities
 
             foreach (Room room in bathroomRooms)
             {
-                foreach (var boundarySegments in room.GetBoundarySegments(options))
+                foreach (IList<Autodesk.Revit.DB.BoundarySegment> boundSegList in room.GetBoundarySegments(options))
                 {
-                    foreach (var segment in boundarySegments)
+                    foreach (Autodesk.Revit.DB.BoundarySegment boundSeg in boundSegList)
                     {
-                        if (segment.ElementId == selectedWall.Id)
+                        if (IsWallSegmentOfSelectedWall(boundSeg, selectedWall))
                         {
-                            roomFound = room;
-                            boundarySegment = boundarySegments;
-                            return roomFound;
+                            roomsFound = room;
+                            boundarySegment = boundSegList;
+                        }
+                    }
+                }
+            }
+            return roomsFound;
+        }
+        private static bool IsWallSegmentOfSelectedWall(BoundarySegment boundSeg, Wall selectedWall)
+        {
+            Element e = PlaceWCCommand.CommandDoc.GetElement(boundSeg.ElementId);
+            Wall wall = e as Wall;
+            return wall != null && wall.Id == selectedWall.Id;
+        }
+        public static List<XYZ> GetDoorsLocationInRoom(Room room, IList<BoundarySegment> boundarySegmentList)
+        {
+            if (boundarySegmentList == null)
+            {
+                return null;
+            }
+
+            List<XYZ> doorsLocationPoint = new List<XYZ>();
+
+            foreach (BoundarySegment boundSeg in boundarySegmentList)
+            {
+                if (boundSeg == null)
+                {
+                    continue;
+                }
+
+                var wallInRoom = PlaceWCCommand.CommandDoc.GetElement(boundSeg.ElementId) as Wall;
+
+                if (wallInRoom == null || !(wallInRoom is HostObject))
+                {
+                    continue;
+                }
+
+                var wallHostObj = wallInRoom as HostObject;
+                var hostedElementsOnWall = wallHostObj.FindInserts(true, true, true, true);
+
+                if (hostedElementsOnWall != null && hostedElementsOnWall.Any())
+                {
+                    var famInstanceCollector = new FilteredElementCollector(PlaceWCCommand.CommandDoc, hostedElementsOnWall)
+                        .OfCategory(BuiltInCategory.OST_Doors)
+                        .WhereElementIsNotElementType()
+                        .Cast<FamilyInstance>()
+                        .Where(A => A != null && (A.ToRoom?.Name == room.Name || A.FromRoom?.Name == room.Name))
+                        .ToList();
+
+                    doorsLocationPoint.AddRange(famInstanceCollector.Select(famInstance => (famInstance.Location as LocationPoint)?.Point)
+                        .Where(locationPoint => locationPoint != null));
+                }
+            }
+
+            if (!doorsLocationPoint.Any())
+            {
+                TaskDialog.Show("Error", $"No doors in this room");
+                return null;
+            }
+
+            return doorsLocationPoint;
+        }
+        public static List<Curve> GetDoorsCurvesInRoom(Room room, IList<BoundarySegment> boundarySegmentList)
+        {
+            if (boundarySegmentList == null)
+            {
+                return null;
+            }
+
+            List<Curve> doorsCurves = new List<Curve>();
+
+            foreach (BoundarySegment boundSeg in boundarySegmentList)
+            {
+                if (boundSeg == null)
+                {
+                    continue;
+                }
+
+                var wallInRoom = PlaceWCCommand.CommandDoc.GetElement(boundSeg.ElementId) as Wall;
+
+                if (wallInRoom == null || !(wallInRoom is HostObject))
+                {
+                    continue;
+                }
+
+                var wallHostObj = wallInRoom as HostObject;
+                var hostedElementsOnWall = wallHostObj.FindInserts(true, true, true, true);
+
+                if (hostedElementsOnWall != null && hostedElementsOnWall.Any())
+                {
+                    var famInstanceCollector = new FilteredElementCollector(PlaceWCCommand.CommandDoc, hostedElementsOnWall)
+                        .OfCategory(BuiltInCategory.OST_Doors)
+                        .WhereElementIsNotElementType()
+                        .Cast<FamilyInstance>()
+                        .Where(A => A != null && (A.ToRoom?.Name == room.Name || A.FromRoom?.Name == room.Name))
+                        .ToList();
+
+                    foreach (var famInstance in famInstanceCollector)
+                    {
+                        var geometryElement = famInstance.get_Geometry(new Options());
+                        foreach (var geometryInstance in geometryElement)
+                        {
+                            var instanceGeometry = geometryInstance as GeometryInstance;
+                            if (instanceGeometry != null)
+                            {
+                                foreach (var geometryObject in instanceGeometry.GetInstanceGeometry())
+                                {
+                                    var curve = geometryObject as Curve;
+                                    if (curve != null)
+                                    {
+                                        doorsCurves.Add(curve);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            return roomFound;
-        }
-
-        public static List<XYZ> GetDoorsLocationInRoom(Room room, IList<BoundarySegment> boundarySegmentList)
-        {
-            var doorPoints = new List<XYZ>();
-
-            foreach (var segment in boundarySegmentList)
+            if (!doorsCurves.Any())
             {
-                var wall = room.Document.GetElement(segment.ElementId) as Wall;
-                if (wall == null)
-                {
-                    continue;
-                }
-
-                var hostedElements = wall.FindInserts(true, true, true, true);
-                var doorInstances = new FilteredElementCollector(room.Document, hostedElements)
-                    .OfCategory(BuiltInCategory.OST_Doors)
-                    .WhereElementIsNotElementType()
-                    .Cast<FamilyInstance>()
-                    .ToList();
-
-                foreach (var door in doorInstances)
-                {
-                    var location = door.Location as LocationPoint;
-                    if (location != null)
-                    {
-                        doorPoints.Add(location.Point);
-                    }
-                }
+                TaskDialog.Show("Error", $"No doors in this room");
+                return null;
             }
 
-            if (!doorPoints.Any())
-            {
-                TaskDialog.Show("Error", "No doors found in the room.");
-            }
-
-            return doorPoints;
+            return doorsCurves;
         }
+
     }
 }

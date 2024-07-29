@@ -6,19 +6,20 @@ using System.Linq;
 
 namespace Task2.Utilities
 {
-    public static class GeoUtils
+    public class GeoUtils
     {
-        public static XYZ FarthestPointFromDoors(List<XYZ> doorPoints, Curve wallCurve)
+        public static XYZ FarthestPointToCurve(List<XYZ> locPointsList, Curve wallCurve)
         {
-            XYZ doorPoint = doorPoints.First();
-            IList<XYZ> wallPoints = wallCurve.Tessellate();
+
+            XYZ doorEndPoint = locPointsList.First();
+            IList<XYZ> wallEndPoints = wallCurve.Tessellate();
 
             double maxDistance = double.MinValue;
             XYZ farthestPoint = null;
 
-            foreach (XYZ wallPoint in wallPoints)
+            foreach (XYZ wallPoint in wallEndPoints)
             {
-                double distance = wallPoint.DistanceTo(doorPoint);
+                double distance = wallPoint.DistanceTo(doorEndPoint);
 
                 if (distance > maxDistance)
                 {
@@ -32,16 +33,19 @@ namespace Task2.Utilities
 
         public static bool IsVerticalCurve(Curve curve)
         {
+            //For simplicity, here we assume it's vertical if the difference in X coordinates is negligible
             return Math.Abs(curve.GetEndPoint(0).X - curve.GetEndPoint(1).X) < 0.001;
         }
-
         public static Curve GetWallCurveInsideRoom(IList<BoundarySegment> boundarySegmentList, Wall wallElement)
         {
             var matchingSegment = boundarySegmentList.FirstOrDefault(boundSeg => boundSeg.ElementId == wallElement.Id);
 
-            return matchingSegment?.GetCurve();
+            if (matchingSegment != null)
+            {
+                return matchingSegment.GetCurve();
+            }
+            return null;
         }
-
         public static XYZ GetCorrectFamilyOrientation(Room room, XYZ point, Curve wallCurve, out XYZ roomCentroid)
         {
             roomCentroid = (room.Location as LocationPoint).Point;
@@ -57,6 +61,32 @@ namespace Task2.Utilities
             }
 
             return directionVector;
+        }
+        public static bool AreLinesIntersecting(List<Curve> instanceLines1, List<Curve> instanceLines2)
+        {
+            foreach (Curve line1 in instanceLines1)
+            {
+                foreach (Curve line2 in instanceLines2)
+                {
+                    if (line1.Intersect(line2) == SetComparisonResult.Overlap)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        public static XYZ GetClosestPointOnCurve(Curve curve, XYZ point)
+        {
+            double param = curve.Project(point).Parameter;
+            return curve.Evaluate(param, false);
+        }
+        public static XYZ GetTranslationVector(XYZ fromPoint, XYZ toPoint, double distance = 0.1)
+        {
+            // Calculate the translation vector from 'fromPoint' to 'toPoint' with a specified distance
+            XYZ direction = toPoint - fromPoint;
+            direction = direction.Normalize();
+            return direction * distance;
         }
     }
 }
