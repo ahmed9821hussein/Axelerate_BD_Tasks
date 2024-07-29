@@ -22,93 +22,42 @@ namespace Task4.Commands
         {
             try
             {
-                BoundingBoxXYZ cropBox = null;
-                ElementId viewTypeId = null;
-                string originalViewName = null;
-                Transform originalTransform = null;
-                XYZ originalMin = null;
-                XYZ originalMax = null;
-
-                using (TransactionGroup txGroup = new TransactionGroup(_doc, "Adjust Section Box Depth"))
+                using (Transaction tx = new Transaction(_doc, "Adjust Section Box Depth"))
                 {
-                    txGroup.Start();
+                    tx.Start();
 
-                    using (Transaction txDelete = new Transaction(_doc, "Delete Original Section View"))
+                    ViewSection originalView = _doc.GetElement(_viewId) as ViewSection;
+                    if (originalView != null && originalView.ViewType == ViewType.Section)
                     {
-                        txDelete.Start();
-
-                        ViewSection originalView = _doc.GetElement(_viewId) as ViewSection;
-                        if (originalView != null && originalView.ViewType == ViewType.Section)
-                        {
-                            if (createdElementIds.Contains(originalView.Id))
-                                return;
-
-                            cropBox = originalView.CropBox;
-                            viewTypeId = originalView.GetTypeId();
-                            originalViewName = originalView.Name;
-                            originalTransform = cropBox.Transform;
-                            originalMin = cropBox.Min;
-                            originalMax = cropBox.Max;
-
-                            _doc.Delete(originalView.Id);
-                            txDelete.Commit();
-                        }
-                        else
-                        {
-                            TaskDialog.Show("Error", "The active view is not a section view or is null.");
-                            txDelete.RollBack();
+                        if (createdElementIds.Contains(originalView.Id))
                             return;
-                        }
-                    }
 
-                    ViewSection newSectionView = null;
-                    using (Transaction txCreate = new Transaction(_doc, "Create Copy with Adjusted BoundingBox"))
-                    {
-                        txCreate.Start();
+                        BoundingBoxXYZ cropBox = originalView.CropBox;
+                        Level level = SectionBoxUtils.GetLevel(_doc, _doc.ActiveView as ViewPlan);
+                        double levelElevation = level.Elevation;
 
-                        if (cropBox != null)
+                        double offset = 10.0; // 10 feet above and below
+                        BoundingBoxXYZ newBox = new BoundingBoxXYZ
                         {
-                            ViewPlan floorPlanView = _doc.ActiveView as ViewPlan;
-                            Level level = SectionBoxUtils.GetLevel(_doc, floorPlanView);
-                            double levelElevation = level.Elevation;
+                            Min = new XYZ(cropBox.Min.X, cropBox.Min.Y, levelElevation - offset),
+                            Max = new XYZ(cropBox.Max.X, cropBox.Max.Y, levelElevation + offset),
+                            Transform = cropBox.Transform
+                        };
 
-                            double offset = 10.0; // 10 feet above and below
-                            BoundingBoxXYZ newBox = new BoundingBoxXYZ
-                            {
-                                Min = new XYZ(cropBox.Min.X, cropBox.Min.Y, levelElevation - offset),
-                                Max = new XYZ(cropBox.Max.X, cropBox.Max.Y, levelElevation + offset)
-                            };
+                        originalView.CropBox = newBox;
+                        originalView.CropBoxActive = true;
+                        originalView.CropBoxVisible = true;
 
-                            newBox.Transform = originalTransform;
-                            newSectionView = ViewSection.CreateSection(_doc, viewTypeId, newBox);
-                            newSectionView.Name = originalViewName;
-
-                            newSectionView.CropBox = newBox;
-                            newSectionView.CropBoxActive = true;
-                            newSectionView.CropBoxVisible = true;
-
-                            createdElementIds.Add(newSectionView.Id);
-                            txCreate.Commit();
-                        }
+                        createdElementIds.Add(originalView.Id);
                     }
-
-                    if (newSectionView != null)
+                    else
                     {
-                        using (Transaction txReference = new Transaction(_doc, "Create Reference Section"))
-                        {
-                            txReference.Start();
-                            ViewPlan floorPlanView = _doc.ActiveView as ViewPlan;
-
-                            Transform referenceTransform = cropBox.Transform;
-                            XYZ originalHeadPoint = referenceTransform.OfPoint(new XYZ(originalMin.X, originalMin.Y, 0));
-                            XYZ originalTailPoint = referenceTransform.OfPoint(new XYZ(originalMax.X, originalMax.Y, 0));
-
-                            ViewSection.CreateReferenceSection(_doc, floorPlanView.Id, newSectionView.Id, originalHeadPoint, originalTailPoint);
-                            txReference.Commit();
-                        }
+                        TaskDialog.Show("Error", "The active view is not a section view or is null.");
+                        tx.RollBack();
+                        return;
                     }
 
-                    txGroup.Assimilate();
+                    tx.Commit();
                 }
             }
             catch (Exception ex)

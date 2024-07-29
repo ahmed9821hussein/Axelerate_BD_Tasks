@@ -7,11 +7,8 @@ namespace Task4.Commands
     [Transaction(TransactionMode.Manual)]
     public class App : IExternalApplication
     {
-        public static double offsetNum = 1;
-        public static bool IfWpfOpened = false;
-
-        private static ExternalEvent _externalEvent;
-        private static AdjustSectionBoxDepthHandler _handler;
+        public static ExternalEvent _externalEvent;
+        public static AdjustSectionBoxDepthHandler _handler;
         private static SectionViewUpdater _updater;
 
         public Result OnStartup(UIControlledApplication application)
