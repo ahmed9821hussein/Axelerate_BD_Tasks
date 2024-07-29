@@ -1,51 +1,32 @@
 ﻿using Autodesk.Revit.DB;
-using Autodesk.Revit.DB.Architecture;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Task3.Utilities
 {
-    public static class FloorUtils
+    public static class GeometryUtils
     {
-        public static Floor GetFloorInRoom(Room room, Document doc)
+        public static List<XYZ> SortPointsClockwise(List<XYZ> points)
         {
-            var floor = new FilteredElementCollector(doc)
-                .OfCategory(BuiltInCategory.OST_Floors)
-                .WhereElementIsNotElementType()
-                .Cast<Floor>()
-                .FirstOrDefault(f => IsFloorInRoom(f, room));
-            return floor;
+            XYZ center = new XYZ(points.Average(p => p.X), points.Average(p => p.Y), points.Average(p => p.Z));
+            return points.OrderBy(p => Math.Atan2(p.Y - center.Y, p.X - center.X)).ToList();
         }
 
-        private static bool IsFloorInRoom(Floor floor, Room room)
+        public static bool IsPointCloseToRoomBoundaries(IList<IList<BoundarySegment>> boundarySegments, XYZ point, double maxDistance)
         {
-            var bbox = floor.get_BoundingBox(null);
-            var roomCenter = (room.Location as LocationPoint).Point;
-
-            return bbox.Contains(roomCenter);
-        }
-
-        public static void CreateThreshold(Document doc, Floor floor, FamilyInstance door)
-        {
-            var doorLocation = (door.Location as LocationPoint).Point;
-            var bbox = door.get_BoundingBox(null);
-            var thresholdWidth = (bbox.Max.X - bbox.Min.X) / 2.0;
-
-            XYZ p1 = doorLocation + new XYZ(-thresholdWidth, 0, 0);
-            XYZ p2 = doorLocation + new XYZ(thresholdWidth, 0, 0);
-
-            Line thresholdLine = Line.CreateBound(p1, p2);
-
-            CurveArray curveArray = new CurveArray();
-            curveArray.Append(thresholdLine);
-
-            doc.Create.NewOpening(floor, curveArray, true);
-        }
-
-        private static bool Contains(this BoundingBoxXYZ bbox, XYZ point)
-        {
-            return bbox.Min.X <= point.X && point.X <= bbox.Max.X
-                && bbox.Min.Y <= point.Y && point.Y <= bbox.Max.Y;
+            foreach (var boundary in boundarySegments)
+            {
+                foreach (var segment in boundary)
+                {
+                    var curve = segment.GetCurve();
+                    if (curve.Distance(point) <= maxDistance)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 }
