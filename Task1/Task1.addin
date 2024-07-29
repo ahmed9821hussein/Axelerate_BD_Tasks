@@ -2,7 +2,7 @@
 <RevitAddIns>
 	<AddIn Type="Command">
 		<Name>Task1</Name>
-		<Assembly>D:\Axelerate\Sol\Task1\bin\Debug\Task1.dll</Assembly>
+		<Assembly>\Task1.dll</Assembly>
 		<AddInId>
 			364D05AC-7E80-496A-9D04-F04AAF09D05F
 		</AddInId>
